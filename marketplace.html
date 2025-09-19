@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sirius MTP — Live Market Prices (Gold per gram + Multi-commodity)</title>
+
+<!-- Chart.js (for charts) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root{
+    --gold:#d4af37; --gold-dark:#a8891c; --black:#0e0e0e; --white:#fff;
+    --grey:#f5f7fa; --muted:#6b7280; --blue:#0f4c81; --green:#1f8f4e;
+    --max-w:8000px; --radius:12px; --shadow:0 10px 30px rgba(0,0,0,.08);
+    --header-h:78px;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,Segoe UI,Arial,sans-serif; margin:0; background:var(--grey); color:#111}
+  .container{max-width:var(--max-w);margin:18px auto;padding:14px;}
+
+  /* Header (match Sirius site style) */
+  header{position:sticky;top:0;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border-bottom:1px solid rgba(0,0,0,.05);height:var(--header-h);display:flex;align-items:center;z-index:1000}
+  .inner{width:100%;max-width:var(--max-w);margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:.6rem;font-weight:800;color:var(--black);text-decoration:none}
+  .logo img{height:48px;width:auto;border-radius:6px}
+  nav{display:flex;gap:12px;align-items:center}
+  nav a{color:var(--black);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:8px}
+  .mobile-toggle{display:none;background:var(--blue);color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:18px}
+  @media(max-width:960px){nav{position:fixed;left:0;right:0;top:var(--header-h);background:var(--white);transform:translateY(-120%);transition:transform .25s ease}nav.open{transform:translateY(0)}.mobile-toggle{display:block}}
+
+  /* hero */
+  .hero{background:linear-gradient(135deg,var(--gold),var(--gold-dark));padding:24px;border-radius:12px;color:var(--black);box-shadow:var(--shadow);display:flex;justify-content:space-between;gap:16px;align-items:center}
+  .hero h1{margin:0;font-size:1.25rem}
+  .muted{color:var(--muted);font-size:.92rem}
+
+  /* layout grid */
+  .grid{display:grid;grid-template-columns:1fr 420px 360px;gap:16px;margin-top:16px}
+  @media(max-width:1100px){.grid{grid-template-columns:1fr 420px}}
+  @media(max-width:860px){.grid{grid-template-columns:1fr;padding:0 8px}}
+
+  .card{background:var(--white);border-radius:12px;padding:14px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.04)}
+  h2{margin:0 0 8px 0;color:var(--black)}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:left}
+  .table th{background:var(--black);color:var(--white);font-weight:600}
+  .price{font-weight:700;font-size:1.05rem}
+  .unit{font-size:.9rem;color:var(--muted)}
+  .small{font-size:.85rem;color:var(--muted)}
+
+  /* converter & offer */
+  .row{display:flex;gap:8px;align-items:center}
+  input,select{padding:8px;border-radius:8px;border:1px solid #e3e6eb;font-size:1rem}
+  button{background:var(--blue);color:#fff;padding:9px 12px;border:none;border-radius:8px;cursor:pointer}
+  button.secondary{background:#fff;border:1px solid #ddd;color:#111}
+
+  /* charts container */
+  .chart-wrapper{height:220px}
+
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:.9rem;padding-bottom:20px}
+
+  /* responsive tweaks */
+  @media(max-width:600px){
+    header .inner{padding:0 10px}
+    .hero{flex-direction:column;align-items:flex-start}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <a class="logo" href="index.html">
+      <img src="logo2.jpeg" alt="Sirius logo">
+      <div>
+        <div style="font-size:.95rem">Sirius <span style="color:var(--gold)">Minerals</span> Holdings</div>
+        <div style="font-size:.75rem;color:var(--muted)">Sirius MTP • Market Prices</div>
+      </div>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="mobile-toggle" aria-label="Open menu" id="mobileToggle">☰</button>
+      <nav id="mainNav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<div class="container" id="market-prices">
+  <section class="hero">
+    <div>
+      <h1>Live Market Prices — Precious & Base Metals</h1>
+      <div class="small muted">Gold shown primarily per gram. Prices displayed in USD and ZMW (Kwacha). Data refresh: live where available.</div>
+    </div>
+    <div style="text-align:right">
+      <div id="lastUpdated" class="small muted">Last update: —</div>
+      <div style="margin-top:8px"><span class="small muted">USD → ZMW:</span> <strong id="fxRate">—</strong></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Spot Prices</h2>
+          <div class="small muted">Source: TradingView / Metals-API (if connected)</div>
+        </div>
+
+        <table class="table" id="spotTable" aria-live="polite" style="margin-top:12px">
+          <thead><tr><th>Commodity</th><th>Price (USD)</th><th>Price (ZMW)</th><th>Unit</th><th>Chart</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>Concentrate Prices (sample)</h2>
+        <div class="small muted">Payable metal basis — add smelter treatment & refining charges when moving to production.</div>
+        <table class="table" id="concTable" style="margin-top:10px"><thead><tr><th>Concentrate</th><th>Payable</th><th>USD/unit</th><th>ZMW/unit</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>Historical Chart (select metal)</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <select id="chartPicker">
+            <!-- JS fills -->
+          </select>
+          <select id="historyRange">
+            <option value="12">12 months</option>
+            <option value="36">36 months</option>
+            <option value="60">60 months</option>
+          </select>
+          <button onclick="updateHistoryChart()">Show</button>
+        </div>
+        <div class="chart-wrapper card" style="padding:10px"><canvas id="historyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div>
+      <div class="card">
+        <h2>Unit Converter</h2>
+        <div style="margin-top:8px" class="small muted">Precious metals use troy ounce conversion. 1 troy oz = 31.1034768 g.</div>
+        <div style="margin-top:10px" class="row">
+          <input id="convAmount" type="number" step="any" placeholder="Amount"/>
+          <select id="convFrom"><option value="g">g</option><option value="oz">oz</option><option value="kg">kg</option></select>
+          <select id="convTo"><option value="g">g</option><option value="oz">oz</option><option value="kg">kg</option></select>
+          <button onclick="doConvert()">Convert</button>
+        </div>
+        <div id="convResult" class="small muted" style="margin-top:8px">Enter values and convert</div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>Ore Offer Calculator</h2>
+        <div class="small muted">Estimate offer from % metal, recovery and current price.</div>
+        <div style="margin-top:10px">
+          <label class="small">Metal</label>
+          <select id="offerMetal"></select>
+
+          <label class="small" style="margin-top:8px">Ore weight</label>
+          <div class="row"><input id="oreWeight" type="number" step="any" placeholder="weight"/><select id="oreUnit"><option value="kg">kg</option><option value="g">g</option><option value="oz">oz</option></select></div>
+
+          <label class="small" style="margin-top:8px">Metal % in ore</label>
+          <input id="orePct" type="number" step="any" placeholder="%"/>
+
+          <label class="small" style="margin-top:8px">Recovery (%)</label>
+          <input id="oreRecovery" type="number" value="90"/>
+
+          <label class="small" style="margin-top:8px">Price basis</label>
+          <select id="offerBasis"><option value="spot">Spot</option><option value="conc">Concentrate payable</option></select>
+
+          <div style="margin-top:10px" class="row"><button onclick="calcOffer()">Calculate</button><button class="secondary" onclick="clearOffer()">Clear</button></div>
+
+          <div id="offerRes" style="margin-top:10px" class="small muted">Result appears here</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>Ore % – Quick Reference</h2>
+        <table class="table"><thead><tr><th>%</th><th>Gold (USD/tonne)</th><th>Copper (USD/tonne)</th></tr></thead><tbody id="quickRef"></tbody></table>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="card">
+        <h2>Market Offers & Alerts</h2>
+        <div id="offers" class="small muted">No live offers. Feed integration required for live orderbook.</div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>FX / Currency</h2>
+        <div class="small muted">USD → ZMW live exchange rate (source: exchangerate.host)</div>
+        <div style="margin-top:8px"><strong id="fxUSDZMW">—</strong></div>
+        <div style="margin-top:6px" class="small muted">Last FX update: <span id="fxTS">—</span></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h2>Integration Notes</h2>
+        <div class="small muted">
+          <ul>
+            <li>To enable true live metal prices, put an API key from a provider (Metals-API or similar) on the server and return JSON at <code>/api/spot-prices</code>.</li>
+            <li>TradingView widgets can be embedded for interactive charts per symbol (XAUUSD, COPPER, etc.).</li>
+            <li>Gold displayed by default per gram. Toggle unit in the table row (client-side).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>© <span id="year"></span> Sirius Minerals Holdings • Market Prices demo — replace sample fetch with your API</footer>
+</div>
+
+<script>
+/* =============================
+  Configuration & API keys
+  =============================
+  - For live metal prices: set METALS_API_KEY to your key and either:
+      a) use fetchPrices() server-side endpoint '/api/spot-prices' that returns provider data, OR
+      b) use client-side Metals-API call (not recommended for public keys)
+  - Exchange rate uses exchangerate.host (no key)
+*/
+const METALS_API_KEY = ''; // <-- put your metals-api.com key here OR leave empty to use sample data
+const USE_SERVER_PROXY = true; // set to true if you will implement /api/spot-prices on your server
+
+// sample data (fallback)
+const SAMPLE = {
+  GOLD:{price_per_oz:3395.45, history:[1700,1800,1900,2000,2100,3000]}, // per oz
+  SILVER:{price_per_oz:24.55, history:[15,16,17,20,22,24.55]},
+  COPPER:{price_per_kg:9.25, history:[6.5,7.5,8.2,8.8,9.1,9.25]}
+};
+
+/* Utilities */
+const GRAMS_PER_TROY_OUNCE = 31.1034768;
+function ozToGr(oz){return oz*GRAMS_PER_TROY_OUNCE;}
+function grToOz(g){return g/GRAMS_PER_TROY_OUNCE;}
+function kgToGr(kg){return kg*1000;}
+function grToKg(g){return g/1000;}
+function ozToKg(oz){return grToKg(ozToGr(oz));}
+function kgToOz(kg){return grToOz(kgToGr(kg));}
+
+/* DOM nodes */
+const spotTbody = document.querySelector('#spotTable tbody');
+const concTbody = document.querySelector('#concTable tbody');
+const chartPicker = document.getElementById('chartPicker');
+const fxUSDZMW = document.getElementById('fxUSDZMW');
+const fxTS = document.getElementById('fxTS');
+const lastUpdated = document.getElementById('lastUpdated');
+const offerMetal = document.getElementById('offerMetal');
+const historyCtx = document.getElementById('historyChart').getContext('2d');
+let historyChart = null;
+let currentPrices = {}; // live or sample
+
+/* list of metals we support and preferred unit */
+const METALS = [
+  {sym:'GOLD', display:'Gold', unit:'g', priceKey:'price_per_oz', primary:'gold'},
+  {sym:'SILVER', display:'Silver', unit:'oz', priceKey:'price_per_oz', primary:'silver'},
+  {sym:'COPPER', display:'Copper', unit:'kg', priceKey:'price_per_kg', primary:'copper'},
+  {sym:'TIN', display:'Tin', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'TANTALUM', display:'Tantalum', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'ZINC', display:'Zinc', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'NICKEL', display:'Nickel', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'COBALT', display:'Cobalt', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'MANGANESE', display:'Manganese', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'TITANIUM', display:'Titanium', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'IRON', display:'Iron', unit:'kg', priceKey:'price_per_kg'},
+  {sym:'SUGELITE', display:'Sugelite', unit:'kg', priceKey:'price_per_kg'}
+];
+
+/* Helper: format USD and ZMW */
+function fmtUSD(v){ if(typeof v !== 'number') return '—'; return v.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}); }
+function fmtZMW(v){ if(typeof v !== 'number') return '—'; return v.toLocaleString('en-ZM',{style:'currency',currency:'ZMW',maximumFractionDigits:2}); }
+
+/* Fetch fx rate: USD -> ZMW using exchangerate.host */
+async function fetchFX(){
+  try{
+    const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=ZMW');
+    const j = await res.json();
+    if(j && j.rates && j.rates.ZMW){
+      fxUSDZMW.textContent = j.rates.ZMW.toFixed(4);
+      fxTS.textContent = new Date(j.date).toLocaleDateString();
+      return j.rates.ZMW;
+    }
+  }catch(e){
+    console.warn('FX fetch failed', e);
+  }
+  fxUSDZMW.textContent = '—';
+  fxTS.textContent = '—';
+  return null;
+}
+
+/* Fetch prices: prefer server proxy, fallback to Metals-API if key provided, else sample */
+async function fetchPrices(){
+  lastUpdated.textContent = 'Last update: fetching...';
+  // 1) server proxy
+  if(USE_SERVER_PROXY){
+    try{
+      const res = await fetch('/api/spot-prices'); // implement on your server to query Metals-API / TradingView etc.
+      if(res.ok){
+        const json = await res.json();
+        return json;
+      }
+    }catch(e){ console.warn('proxy fetch failed', e); }
+  }
+  // 2) client-side Metals-API (not recommended for public keys)
+  if(METALS_API_KEY){
+    try{
+      // NOTE: metals-api endpoint example (change to actual provider format as required)
+      const symbols = ['XAU','XAG','XCU']; // example mapping
+      // You will need to adapt parsing depending on provider response
+      const url = `https://metals-api.com/api/latest?access_key=${METALS_API_KEY}&base=USD&symbols=XAU,XAG,CU`; 
+      const res = await fetch(url);
+      const j = await res.json();
+      // parse j to desired structure (provider formats vary) — HERE we must adapt
+      // fallback to sample if parsing not provided
+      console.warn('Metals-API client response (parsing needed)', j);
+    }catch(e){ console.warn('metals API client fetch fail', e); }
+  }
+  // 3) fallback to sample data
+  // construct a normalized price object used by UI
+  const p = {};
+  // GOLD per oz -> convert to per gram
+  p.GOLD = { priceUSD_per_g: SAMPLE.GOLD.price_per_oz / GRAMS_PER_TROY_OUNCE,
+             unit:'g', historyYears: SAMPLE.GOLD.history };
+  p.SILVER = { priceUSD_per_oz: SAMPLE.SILVER.price_per_oz, unit:'oz', historyYears: SAMPLE.SILVER.history };
+  p.COPPER = { priceUSD_per_kg: SAMPLE.COPPER.price_per_kg, unit:'kg', historyYears: SAMPLE.COPPER.history };
+  return p;
+}
+
+/* Render spot table */
+async function renderSpot(){
+  const fx = await fetchFX();
+  const prices = await fetchPrices();
+  currentPrices = prices;
+  // normalize and render using METALS array
+  spotTbody.innerHTML = '';
+  METALS.forEach(m=>{
+    let usdDisplay='—', zmwDisplay='—', unit=m.unit;
+    // handle gold separately (stored priceUSD_per_g)
+    if(m.sym === 'GOLD' && prices.GOLD){
+      const p = prices.GOLD.priceUSD_per_g;
+      usdDisplay = fmtUSD(p) + ' / g';
+      zmwDisplay = fx ? fmtZMW(p * fx) + ' / g' : '—';
+    } else if(m.sym === 'SILVER' && prices.SILVER){
+      const p = prices.SILVER.priceUSD_per_oz;
+      usdDisplay = fmtUSD(p) + ' / oz';
+      zmwDisplay = fx ? fmtZMW(p * fx) + ' / oz' : '—';
+    } else if(prices[m.sym]){
+      // base metals stored as per kg
+      const key = Object.keys(prices[m.sym]).find(k=>k.indexOf('per_')===0);
+      const priceVal = prices[m.sym][key];
+      let unitLabel = key.includes('kg') ? 'kg' : (key.includes('ton')?'tonne':'unit');
+      usdDisplay = priceVal ? fmtUSD(priceVal) + ` / ${unitLabel}` : '—';
+      zmwDisplay = (fx && priceVal) ? fmtZMW(priceVal * fx) + ` / ${unitLabel}` : '—';
+    }
+    // create chart placeholder id
+    const chartId = 'mini_'+m.sym;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m.display}</td>
+                    <td class="price">${usdDisplay}</td>
+                    <td>${zmwDisplay}</td>
+                    <td class="unit">${m.unit}</td>
+                    <td style="width:160px"><canvas id="${chartId}" height="44"></canvas></td>`;
+    spotTbody.appendChild(tr);
+
+    // draw mini chart from price history if available
+    let hist = prices[m.sym] && (prices[m.sym].historyYears || prices[m.sym].history) ? (prices[m.sym].historyYears || prices[m.sym].history) : null;
+    if(hist && hist.length){
+      drawMiniChart(chartId, hist);
+    } else {
+      // no history - leave blank
+    }
+  });
+  // populate other tables
+  populateConcentrates(prices, fx);
+  populateOfferDrop(prices);
+  populateQuickRef(prices);
+  lastUpdated.textContent = 'Last update: ' + new Date().toLocaleString();
+}
+
+/* draw small Chart.js line */
+function drawMiniChart(ctxId, data){
+  const ctx = document.getElementById(ctxId);
+  if(!ctx) return;
+  new Chart(ctx.getContext('2d'), {
+    type:'line',
+    data:{labels:data.map((_,i)=>i+1), datasets:[{data:data, borderColor: '#0f4c81', tension:0.25, pointRadius:0}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}
+  });
+}
+
+/* populate concentrates (sample) */
+function populateConcentrates(prices, fx){
+  concTbody.innerHTML = '';
+  const concs = [
+    {name:'Copper Concentrate','metal':'COPPER','payable':0.85},
+    {name:'Nickel Concentrate','metal':'NICKEL','payable':0.9},
+    {name:'Gold Concentrate','metal':'GOLD','payable':0.95}
+  ];
+  concs.forEach(c=>{
+    let usd='—', zmw='—', unit='—';
+    if(prices[c.metal]){
+      if(c.metal==='GOLD' && prices.GOLD.priceUSD_per_g){
+        unit = 'g'; const p = prices.GOLD.priceUSD_per_g * c.payable;
+        usd = fmtUSD(p) + ' / g'; zmw = fx ? fmtZMW(p*fx) + ' / g' : '—';
+      } else {
+        // base metals per kg
+        const key = Object.keys(prices[c.metal]).find(k=>k.indexOf('per_')===0);
+        const pVal = prices[c.metal][key] * c.payable;
+        unit = key.includes('kg') ? 'kg' : 'unit';
+        usd = fmtUSD(pVal) + ' / ' + unit; zmw = fx ? fmtZMW(pVal*fx) + ' / ' + unit : '—';
+      }
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${c.name}</td><td>${c.metal}</td><td>${usd}</td><td>${zmw}</td>`;
+    concTbody.appendChild(tr);
+  });
+}
+
+/* populate offer metal dropdown */
+function populateOfferDrop(prices){
+  offerMetal.innerHTML = '';
+  METALS.forEach(m=>{ const opt = document.createElement('option'); opt.value=m.sym; opt.textContent=m.display; offerMetal.appendChild(opt); });
+}
+
+/* quick ref table */
+function populateQuickRef(prices){
+  const el = document.getElementById('quickRef'); el.innerHTML='';
+  const pct = [0.5,1,2,5,10];
+  pct.forEach(p=>{
+    // gold per tonne example
+    let goldT = '—', copperT = '—';
+    if(prices.GOLD && prices.GOLD.priceUSD_per_g){
+      const goldKg = 1000*(p/100);
+      const goldOz = kgToOz(goldKg);
+      const perT = goldOz * (prices.GOLD.priceUSD_per_g * GRAMS_PER_TROY_OUNCE); // careful: prices.GOLD.priceUSD_per_g * g->oz conversion - adjust simpler:
+      // simpler compute: gold grams per tonne = 1000*(p/100) kg -> grams = kg*1000 -> grams->oz etc.
+      const grams = goldKg*1000;
+      const oz = grToOz(grams);
+      goldT = fmtUSD(oz * (prices.GOLD.priceUSD_per_g * GRAMS_PER_TROY_OUNCE / GRAMS_PER_TROY_OUNCE)) || '—';
+    }
+    if(prices.COPPER && prices.COPPER.priceUSD_per_kg){
+      const cuKg = 1000*(p/100);
+      copperT = fmtUSD(cuKg * prices.COPPER.priceUSD_per_kg);
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p}%</td><td>${goldT}</td><td>${copperT}</td>`;
+    el.appendChild(tr);
+  });
+}
+
+/* HISTORY CHART - Chart.js with years on X */
+async function updateHistoryChart(){
+  const sym = chartPicker.value;
+  const months = parseInt(document.getElementById('historyRange').value,10);
+  // build data from sample or API
+  let series = [];
+  if(currentPrices[sym] && (currentPrices[sym].history || currentPrices[sym].historyYears)){
+    series = currentPrices[sym].history || currentPrices[sym].historyYears;
+  } else {
+    // generate synthetic series
+    const base =  (sym==='GOLD') ? 60 : 30;
+    for(let i=months-1;i>=0;i--){ series.push((Math.sin(i/6)+1.2)*(base + Math.random()*10)); }
+  }
+  // x labels (months back)
+  const labels = [];
+  const now = new Date();
+  for(let i=months-1;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    labels.push(d.toLocaleString('default',{month:'short',year:'numeric'}));
+  }
+
+  if(historyChart) historyChart.destroy();
+  historyChart = new Chart(historyCtx, {
+    type:'line',
+    data:{labels:labels, datasets:[{label:sym,data:series.slice(-months),borderColor: '#0f4c81',backgroundColor:'rgba(15,76,129,0.08)',pointRadius:2}]},
+    options:{responsive:true,scales:{x:{display:true,title:{display:true,text:'Date'}},y:{display:true,title:{display:true,text:'Price (USD)'}}},plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}}}
+  });
+}
+
+/* Offer calculator */
+function calcOffer(){
+  const metal = document.getElementById('offerMetal').value;
+  const weight = parseFloat(document.getElementById('oreWeight').value) || 0;
+  const unit = document.getElementById('oreUnit').value;
+  const pct = parseFloat(document.getElementById('orePct').value) || 0;
+  const recovery = parseFloat(document.getElementById('oreRecovery').value) || 90;
+  const basis = document.getElementById('offerBasis').value;
+
+  if(!metal || weight<=0 || pct<=0){ document.getElementById('offerRes').innerText='Enter metal, weight and % content.'; return; }
+  const prices = currentPrices;
+  const fx = parseFloat(fxUSDZMW.textContent) || 0;
+  // normalize weight to kg
+  let kg = (unit==='kg')?weight: (unit==='g')?weight/1000: ozToKg(weight);
+  // kg of metal contained
+  const metalKg = kg*(pct/100)*(recovery/100);
+  let offerUSD = 0;
+  if(metal==='GOLD' && prices.GOLD && prices.GOLD.priceUSD_per_g){
+    // price per gram
+    const pricePerG = prices.GOLD.priceUSD_per_g;
+    const grams = metalKg*1000;
+    offerUSD = grams * pricePerG;
+  } else if(prices[metal] && prices[metal].priceUSD_per_kg){
+    offerUSD = metalKg * prices[metal].priceUSD_per_kg;
+  } else {
+    document.getElementById('offerRes').innerText='Price not available for selected metal';
+    return;
+  }
+  const offerZMW = fx ? offerUSD * fx : null;
+  document.getElementById('offerRes').innerHTML = `<strong>Estimated offer:</strong> ${fmtUSD(offerUSD)} ${offerZMW? ' / ' + fmtZMW(offerZMW):''}`;
+}
+
+/* converters */
+function doConvert(){
+  const v = parseFloat(document.getElementById('convAmount').value);
+  const from = document.getElementById('convFrom').value;
+  const to = document.getElementById('convTo').value;
+  if(isNaN(v)){ document.getElementById('convResult').innerText='Enter a number'; return; }
+  let grams = (from==='g')?v: (from==='kg')?v*1000: ozToGr(v);
+  let res = (to==='g')?grams: (to==='kg')?grams/1000: grToOz(grams);
+  document.getElementById('convResult').innerText = `${v} ${from} = ${res.toFixed(6)} ${to}`;
+}
+
+/* clear offer */
+function clearOffer(){ document.getElementById('oreWeight').value=''; document.getElementById('orePct').value=''; document.getElementById('offerRes').innerText='Result appears here' }
+
+/* init chart picker & load */
+function initUI(){
+  // chart pick list
+  METALS.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.sym; opt.textContent=m.display; chartPicker.appendChild(opt); });
+  chartPicker.value='GOLD';
+  // init history chart with default
+  updateHistoryChart();
+}
+
+/* load & refresh market (uses fetchPrices) */
+async function loadMarket(){
+  // attempt to fetch and transform to expected structure
+  // Expected structure used below:
+  // currentPrices = {
+  //   GOLD: { priceUSD_per_g: Number, historyYears: [..] },
+  //   SILVER: { priceUSD_per_oz: Number, historyYears: [..] },
+  //   COPPER: { priceUSD_per_kg: Number, historyYears: [..] },
+  //   ...
+  // }
+  try{
+    const prices = await fetchPrices(); // fetchPrices returns normalized sample object (see earlier)
+    // If sample object, transform to expected shape:
+    const normalized = {};
+    // If fetchPrices returned SAMPLE-like object, handle that
+    if(prices && prices.GOLD && prices.GOLD.price_per_oz){
+      normalized.GOLD = { priceUSD_per_g: prices.GOLD.price_per_oz / GRAMS_PER_TROY_OUNCE, history: prices.GOLD.history };
+      normalized.SILVER = { priceUSD_per_oz: prices.SILVER.price_per_oz, history: prices.SILVER.history };
+      normalized.COPPER = { priceUSD_per_kg: prices.COPPER.price_per_kg, history: prices.COPPER.history };
+      // map rest as empty placeholders
+      METALS.forEach(m=>{
+        if(!normalized[m.sym]) normalized[m.sym] = prices[m.sym] || {};
+      });
+    } else {
+      // if fetchPrices already returns normalized form - adopt it directly
+      Object.assign(normalized, prices);
+    }
+    // store current
+    currentPrices = normalized;
+    // render UI
+    renderSpot();
+    populateOfferDrop(currentPrices);
+    populateConcentrates(currentPrices, parseFloat(fxUSDZMW.textContent) || null);
+  }catch(e){ console.error(e); }
+}
+
+/* server-side placeholder: implement /api/spot-prices to return normalized JSON */
+async function fetchPrices(){
+  // This function will be called by loadMarket() above.
+  // If you have server-proxy at /api/spot-prices, implement it to call Metals-API or TradingView.
+  // For now we use SAMPLE fallback (constructed below).
+  // Return object with normalized keys (GOLD.priceUSD_per_g, SILVER.priceUSD_per_oz, COPPER.priceUSD_per_kg, etc.)
+  // NOTE: You should replace this logic with an actual API call to your server or a metal API provider.
+  // --- FALLBACK SAMPLE BUILD ---
+  const sample = {
+    GOLD:{ priceUSD_per_g: 2030.45 / GRAMS_PER_TROY_OUNCE, historyYears:[45,50,55,60,65,62,63,61,60,63,64,62] },
+    SILVER:{ priceUSD_per_oz: 24.55, history:[12,13,14,15,18,20,21,22,23,24,24.5,24.55] },
+    COPPER:{ priceUSD_per_kg: 9.25, history:[5,6,7,7.5,8.2,8.7,9.0,9.1,9.25] },
+    TIN:{ priceUSD_per_kg:34.5 },
+    TANTALUM:{ priceUSD_per_kg:70 },
+    ZINC:{ priceUSD_per_kg:2.1 },
+    NICKEL:{ priceUSD_per_kg:22.5 },
+    COBALT:{ priceUSD_per_kg:35.0 },
+    MANGANESE:{ priceUSD_per_kg:1.1 },
+    TITANIUM:{ priceUSD_per_kg:4.6 },
+    IRON:{ priceUSD_per_kg:0.12 },
+    SUGELITE:{ priceUSD_per_kg:500 }
+  };
+  // simulate async
+  await new Promise(r=>setTimeout(r,200));
+  return sample;
+}
+
+/* renderSpot relies on currentPrices set earlier; create wrapper for fetch FX + load */
+async function renderSpot(){
+  const fx = await fetchFX(); // get USD->ZMW live
+  // update currentPrices -> use currentPrices from top-level
+  // build rows
+  spotTbody.innerHTML = '';
+  METALS.forEach(m=>{
+    const sym = m.sym;
+    const row = document.createElement('tr');
+    let usdText='—', zmwText='—', miniData = [];
+    if(currentPrices[sym]){
+      if(sym==='GOLD' && currentPrices.GOLD.priceUSD_per_g){
+        const p = currentPrices.GOLD.priceUSD_per_g;
+        usdText = `${fmtUSD(p)} / g`;
+        zmwText = fx ? `${fmtZMW(p*fx)} / g` : '—';
+        miniData = currentPrices.GOLD.history || [];
+      } else if(sym==='SILVER' && currentPrices.SILVER.priceUSD_per_oz){
+        const p = currentPrices.SILVER.priceUSD_per_oz;
+        usdText = `${fmtUSD(p)} / oz`;
+        zmwText = fx ? `${fmtZMW(p*fx)} / oz` : '—';
+        miniData = currentPrices.SILVER.history || [];
+      } else if(currentPrices[sym].priceUSD_per_kg){
+        const p = currentPrices[sym].priceUSD_per_kg;
+        usdText = `${fmtUSD(p)} / kg`;
+        zmwText = fx ? `${fmtZMW(p*fx)} / kg` : '—';
+        miniData = currentPrices[sym].history || [];
+      }
+    }
+    // create canvas element for mini chart
+    const chartId = 'mini_'+sym;
+    row.innerHTML = `<td>${m.display}</td>
+                     <td class="price">${usdText}</td>
+                     <td>${zmwText}</td>
+                     <td class="unit">${m.unit}</td>
+                     <td style="width:160px"><canvas id="${chartId}" height="44"></canvas></td>`;
+    spotTbody.appendChild(row);
+    if(miniData && miniData.length>1){
+      // draw mini chart
+      drawMiniChart(chartId, miniData);
+    }
+  });
+  // populate concentrates
+  populateConcentrates(currentPrices, fx);
+  // populate quick ref
+  populateQuickRef(currentPrices);
+  // fill history chart picker
+  if(!chartPicker.querySelector('option')){ METALS.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.sym; opt.textContent=m.display; chartPicker.appendChild(opt); }); chartPicker.value='GOLD'; }
+  lastUpdated.textContent = 'Last update: ' + new Date().toLocaleString();
+}
+
+/* initialisation */
+document.getElementById('year').textContent = new Date().getFullYear();
+initUI();
+(async function init(){
+  await fetchFX();
+  await loadMarket();
+  // refresh every 60s for fx; price refresh interval depends on your data provider
+  setInterval(fetchFX, 60*1000);
+  // If you have a live price API, call loadMarket() on an interval too (e.g., setInterval(loadMarket, 60*1000))
+})();
+
+/* MOBILE nav toggle */
+document.getElementById('mobileToggle').addEventListener('click', ()=>{
+  document.getElementById('mainNav').classList.toggle('open');
+});
+
+/* Expose some functions to global for console debugging */
+window.calcOffer = calcOffer;
+window.clearOffer = clearOffer;
+window.doConvert = doConvert;
+window.updateHistoryChart = updateHistoryChart;
+</script>
+</body>
+</html>

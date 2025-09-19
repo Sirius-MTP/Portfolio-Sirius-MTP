@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Zambia Mining Co‑op Map (Admin Mode)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin:0; display:flex; height:100vh; font-family:sans-serif; }
+    #map { flex: 2; }
+    #admin { flex: 1; background: #f7f7f9; padding: 10px; overflow:auto; }
+    .input-group { margin-bottom:8px; }
+    label { display:block; font-weight:bold; }
+    input, select { width:100%; padding:4px; margin-top:2px; }
+    button { padding:6px 12px; background:#0078d4; color:white; border:none; cursor:pointer; }
+    button:hover { background:#005a9e; }
+    #logs { margin-top:20px; font-size:0.9em; max-height:40vh; overflow:auto; background:#fff; padding:8px; border:1px solid #ccc; }
+    h2 { margin-top:0; }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div id="admin">
+    <h2>Admin — Add Cooperative</h2>
+    <div class="input-group">
+      <label>Latitude</label><input id="lat" type="number" step="0.0001" value="-13.1339">
+    </div>
+    <div class="input-group">
+      <label>Longitude</label><input id="lng" type="number" step="0.0001" value="27.8493">
+    </div>
+    <div class="input-group">
+      <label>Name</label><input id="name" type="text" placeholder="Co‑op Name">
+    </div>
+    <div class="input-group">
+      <label>Mineral</label><input id="mineral" type="text" placeholder="e.g. Copper">
+    </div>
+    <div class="input-group">
+      <label># of Miners</label><input id="miners" type="number" placeholder="e.g. 25">
+    </div>
+    <button id="add">Add to Map</button>
+    <h2>Search Cooperative</h2>
+    <div class="input-group">
+      <label>Search by Name</label><input id="searchName" type="text" placeholder="Co‑op Name">
+    </div>
+    <button id="searchBtn">Search</button>
+
+    <h2>Admin Logs</h2>
+    <div id="logs"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // 1. Initialize Map
+    var map = L.map('map').setView([-13.1339,27.8493], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 2. Marker Layer & Internal Stores
+    var coopLayer = L.layerGroup().addTo(map);
+    var coops = [];
+
+    function log(msg){
+      var el = document.getElementById('logs');
+      var p = document.createElement('p');
+      p.textContent = new Date().toLocaleTimeString() + ' – ' + msg;
+      el.prepend(p);
+    }
+
+    // 3. Add Handler
+    document.getElementById('add').onclick = function(){
+      var lat = parseFloat(document.getElementById('lat').value);
+      var lng = parseFloat(document.getElementById('lng').value);
+      var name = document.getElementById('name').value.trim();
+      var mineral = document.getElementById('mineral').value.trim();
+      var miners = parseInt(document.getElementById('miners').value, 10);
+
+      if(!name || !mineral || isNaN(lat)||isNaN(lng)||isNaN(miners)){
+        return alert('All fields required!');
+      }
+
+      var data = { lat,lng,name,mineral,miners };
+      coops.push(data);
+
+      var marker = L.circleMarker([lat,lng], {
+        color: '#ef5200',
+        radius: 8 + Math.min(miners/10, 12),
+        fillOpacity: 0.7
+      }).addTo(coopLayer);
+
+      marker.bindPopup(
+        `<strong>${name}</strong><br/>Mineral: ${mineral}<br/>Miners: ${miners}`
+      );
+
+      log(`Added co-op "${name}" at (${lat},${lng}) – ${miners} miners, mineral: ${mineral}`);
+    };
+
+    // 4. Search Handler
+    document.getElementById('searchBtn').onclick = function(){
+      var q = document.getElementById('searchName').value.trim().toLowerCase();
+      if(!q) return;
+
+      var found = coops.filter(c => c.name.toLowerCase().includes(q));
+      if(found.length){
+        var c = found[0];
+        map.setView([c.lat,c.lng], 12);
+        log(`Search found "${c.name}", centering map.`);
+      } else log(`Search – no matches for "${q}".`);
+    };
+  </script>
+
+</body>
+</html>
