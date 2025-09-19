@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trade Desk — Buy & Sell Minerals | Sirius MTP</title>
+
+  <!-- Optional global stylesheet (keeps existing site theme) -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Inline critical Sirius styles (guarantees consistent look) -->
+  <style>
+    :root{
+      --gold:#d4af37;
+      --gold-dark:#a8842a;
+      --black:#0e0e0e;
+      --white:#ffffff;
+      --grey-100:#f7f7f7;
+      --grey-300:#ddd;
+      --grey-500:#8a919a;
+      --green:#1f8f4e;
+      --radius:12px;
+      --shadow:0 6px 20px rgba(0,0,0,.08);
+      --header-h:78px;
+      --max-w:1200px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+      background:linear-gradient(180deg,#fbfaf8,#f2efe7);
+      color:var(--black);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Header */
+    header{
+      position:sticky;top:0;z-index:1000;height:var(--header-h);
+      background:rgba(255,255,255,.96);backdrop-filter:blur(6px);
+      border-bottom:1px solid rgba(0,0,0,.04);
+    }
+    .container{max-width:var(--max-w);margin:0 auto;padding:0 1rem;}
+    .inner{height:var(--header-h);display:flex;align-items:center;justify-content:space-between;}
+    .logo{display:flex;align-items:center;gap:.6rem;font-weight:800;color:var(--black);text-decoration:none}
+    .logo img{height:46px;width:auto;border-radius:6px;object-fit:cover}
+    nav ul{display:flex;gap:1rem;list-style:none;margin:0;padding:0;align-items:center}
+    nav a{color:var(--black);text-decoration:none;font-weight:600;padding:.45rem .6rem;border-radius:8px}
+    nav a.active{color:var(--gold)}
+    .mobile-toggle{display:none;background:none;border:none;font-size:1.6rem;cursor:pointer}
+
+    /* Hero */
+    .hero{padding:3rem 0 2rem;background:linear-gradient(180deg, rgba(212,175,55,.04), transparent)}
+    .tag{display:inline-block;background:var(--black);color:#fff;padding:.2rem .6rem;border-radius:999px;font-weight:700;font-size:.8rem}
+
+    /* Layout */
+    .section{padding:1.25rem 0 2.25rem}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:1rem;align-items:start}
+    @media (max-width:960px){ .grid{grid-template-columns:1fr} .mobile-toggle{display:block} nav{display:none} nav.open{display:block;padding:.5rem 0} nav ul{flex-direction:column;gap:.5rem} }
+
+    /* Cards */
+    .card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.04);overflow:hidden}
+    .card .body{padding:1rem}
+    h1,h2,h3{margin:.3rem 0 .6rem}
+    .field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.5rem}
+    input[type="number"], select, input[type="text"]{padding:.7rem;border:1px solid var(--grey-300);border-radius:10px;font:inherit}
+    label{font-weight:700;font-size:.95rem}
+
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1rem;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+    .btn-primary{background:var(--gold);color:var(--black)}
+    .btn-dark{background:#111;color:#fff}
+    .btn-outline{background:transparent;border:2px solid var(--gold);color:var(--gold)}
+
+    /* Two-column small forms */
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    @media (max-width:560px){ .two{grid-template-columns:1fr} }
+
+    /* Summary items */
+    .summary-list{display:grid;gap:.5rem;margin-top:.5rem}
+    .summary-item{display:flex;justify-content:space-between;padding:.55rem .75rem;background:#fbfbfb;border-radius:10px;border:1px solid rgba(0,0,0,.03)}
+    .muted{color:var(--grey-500)}
+    .pill{display:inline-flex;align-items:center;gap:.5rem;padding:.2rem .6rem;border-radius:999px;background:rgba(212,175,55,.08);color:var(--gold-dark);font-weight:800}
+
+    /* Price table */
+    .table-wrap{overflow:auto;margin-top:.5rem}
+    table.data{width:100%;border-collapse:collapse}
+    .data th,.data td{padding:.65rem .8rem;border-top:1px solid var(--grey-300);text-align:center}
+    .data thead th{background:var(--black);color:#fff;position:sticky;top:0}
+
+    /* Portfolio */
+    aside .portfolio-list{list-style:none;padding:0;margin:0}
+    aside .portfolio-list li{margin-bottom:.75rem}
+    .bar{height:8px;background:var(--grey-300);border-radius:999px;overflow:hidden;margin-top:6px}
+    .bar-fill{height:100%;background:var(--gold);width:0%}
+
+    /* Toast */
+    .toast{position:fixed;right:1rem;bottom:1rem;background:#111;color:#fff;padding:.75rem 1rem;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:all .25s;z-index:1200}
+    .toast.show{opacity:1;transform:translateY(0)}
+
+    footer{background:linear-gradient(90deg,#0b0b0b,#1a1a1a);color:#fff;padding:2rem 0;margin-top:2rem}
+    footer .top{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+    @media(max-width:720px){footer .top{grid-template-columns:1fr}}
+    .footer-links ul{list-style:none;padding:0;margin:0}
+    .footer-links a{color:#ddd;text-decoration:none}
+
+    .note{font-size:.92rem;color:var(--grey-500)}
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container inner">
+      <a class="logo" href="index.html" aria-label="Sirius Minerals Holdings home">
+        <img src="logo2.jpeg" alt="Sirius logo">
+        <span>Sirius <strong style="color:var(--gold)">Minerals</strong> Holdings</span>
+      </a>
+
+      <button class="mobile-toggle" aria-label="Open menu">☰</button>
+
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="trade.html" class="active">Trade</a></li>
+          <li><a href="portfolio.html">Portfolio</a></li>
+          <li><a href="subscriptions.html">Subscriptions</a></li>
+          <li><a href="miner-guide.html">Miner Guide</a></li>
+          <li><a href="contact.html" class="btn btn-primary">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Intro -->
+  <section class="hero">
+    <div class="container">
+      <div class="content">
+        <span class="tag">SIRIUS MTP</span>
+        <h1 class="tight">Trade Desk — Buy & Sell Minerals</h1>
+        <p class="big">A unified, compliant marketplace for digital mineral assets. Live USD prices, dynamic ZMW conversion, and instant portfolio updates.</p>
+
+        <div style="margin-top:1rem" class="tabs">
+          <button class="tab-btn active" data-tab="buyTab">Buy</button>
+          <button class="tab-btn" data-tab="sellTab">Sell</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main -->
+  <section class="section">
+    <div class="container grid">
+
+      <!-- Main column (Buy / Sell + Live Prices) -->
+      <div>
+
+        <!-- Buy Card -->
+        <div class="card" id="buyTab">
+          <div class="body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap">
+              <h3 style="margin:0">Place Buy Order</h3>
+              <span class="pill">Broker fee 5%</span>
+            </div>
+
+            <div class="two" style="margin-top:.6rem">
+              <div class="field">
+                <label for="buyMineral">Mineral</label>
+                <select id="buyMineral" aria-label="Select mineral to buy">
+                  <option value="gold">Gold</option>
+                  <option value="silver">Silver</option>
+                  <option value="copper">Copper</option>
+                  <option value="zinc">Zinc</option>
+                  <option value="tantalum">Tantalum</option>
+                  <option value="emerald">Emerald</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="buyQty">Quantity (grams)</label>
+                <input id="buyQty" type="number" min="1" placeholder="e.g. 25" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label>Price / g (USD)</label>
+                <input id="buyPrice" type="text" disabled />
+              </div>
+              <div class="field">
+                <label>FX Rate (1 USD → ZMW)</label>
+                <input id="fxRateBuy" type="text" disabled />
+                <div id="fxRateStamp" class="note" style="margin-top:.35rem"></div>
+              </div>
+            </div>
+
+            <div class="summary-list">
+              <div class="summary-item"><span class="muted">Subtotal (USD)</span><strong id="buySubtotal">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Broker fee 5% (USD)</span><strong id="buyFee">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Total (USD)</span><strong id="buyTotal">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Total (ZMW)</span><strong id="buyTotalZmw">ZMW 0.00</strong></div>
+            </div>
+
+            <div style="display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap">
+              <button class="btn btn-dark" id="btnCalcBuy">Calculate</button>
+              <button class="btn btn-primary" id="btnPlaceBuy">Place Buy Order</button>
+              <a class="btn btn-outline" href="subscriptions.html">Upgrade (15% off)</a>
+            </div>
+
+            <p class="note" style="margin-top:.7rem">Orders allocate digital holdings to your <a href="portfolio.html">Portfolio</a>. Physical reconciliation is handled by Sirius facilities after verification.</p>
+          </div>
+        </div>
+
+        <!-- Sell Card -->
+        <div class="card" id="sellTab" style="display:none;margin-top:1rem">
+          <div class="body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap">
+              <h3 style="margin:0">Sell Holdings</h3>
+              <span class="pill">Instant ZMW settlement</span>
+            </div>
+
+            <div class="two" style="margin-top:.6rem">
+              <div class="field">
+                <label for="sellMineral">Select Holding</label>
+                <select id="sellMineral" aria-label="Select holding to sell"></select>
+              </div>
+              <div class="field">
+                <label for="sellQty">Quantity to sell (grams)</label>
+                <input id="sellQty" type="number" min="1" placeholder="e.g. 10" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label>Available (grams)</label>
+                <input id="sellAvail" type="text" disabled />
+              </div>
+              <div class="field">
+                <label>Price / g (USD)</label>
+                <input id="sellPrice" type="text" disabled />
+              </div>
+            </div>
+
+            <div class="summary-list">
+              <div class="summary-item"><span class="muted">Gross (USD)</span><strong id="sellGross">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Broker fee 5% (USD)</span><strong id="sellFee">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Net (USD)</span><strong id="sellNet">$0.00</strong></div>
+              <div class="summary-item"><span class="muted">Net (ZMW)</span><strong id="sellNetZmw">ZMW 0.00</strong></div>
+            </div>
+
+            <div style="display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap">
+              <button class="btn btn-dark" id="btnCalcSell">Calculate</button>
+              <button class="btn btn-primary" id="btnPlaceSell">Place Sell Order</button>
+              <a class="btn btn-outline" href="portfolio.html">View Portfolio</a>
+            </div>
+
+            <p class="note" style="margin-top:.7rem">Settlement will be processed through your registered payout method. Please ensure correct documentation during physical handover.</p>
+          </div>
+        </div>
+
+        <!-- Live Prices -->
+        <div class="card" style="margin-top:1rem">
+          <div class="body">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+              <h3 style="margin:0">Live Market Prices (USD / gram)</h3>
+              <div class="muted">Timestamp: <span id="stamp"></span></div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data" id="pricesTable" aria-label="Live prices">
+                <thead>
+                  <tr><th>Mineral</th><th>Category</th><th>Price (USD/g)</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar: Mini Portfolio -->
+      <aside>
+        <div class="card">
+          <div class="body">
+            <h3 style="margin:0 0 .5rem 0">Mini Portfolio</h3>
+
+            <div class="summary-item"><span class="muted">Total Value (USD)</span><strong id="portfolioUsd">$0.00</strong></div>
+            <div class="summary-item" style="margin-top:.45rem"><span class="muted">Total Value (ZMW)</span><strong id="portfolioZmw">ZMW 0.00</strong></div>
+
+            <div style="margin-top:.8rem">
+              <div class="muted" style="font-weight:700;margin-bottom:.5rem">Holdings</div>
+              <ul class="portfolio-list" id="portfolioList" aria-live="polite" style="margin:0;padding:0"></ul>
+              <div class="note" style="margin-top:.6rem">Holdings persist locally for demonstration. For production, holdings sync with your account.</div>
+            </div>
+
+            <div style="margin-top:1rem;display:flex;gap:.5rem">
+              <button class="btn btn-outline" id="btnExportCsv">Export CSV</button>
+              <button class="btn btn-dark" id="btnClearHold">Clear Local</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="top" style="margin-bottom:1rem">
+        <div>
+          <a class="logo" href="index.html" style="color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem">
+            <img src="logo2.jpeg" alt="" style="height:36px;border-radius:6px"/>
+            <span>Sirius Minerals Holdings</span>
+          </a>
+          <p class="note" style="margin-top:.6rem;color:#dcdcdc">Brokerage, testing & traceability for compliant mineral trade.</p>
+        </div>
+        <div class="footer-links">
+          <h4 style="margin-top:0">Company</h4>
+          <ul><li><a href="about.html">About</a></li><li><a href="miner-guide.html">Miner Guide</a></li><li><a href="features.html">Features</a></li></ul>
+        </div>
+        <div class="footer-links">
+          <h4 style="margin-top:0">Support</h4>
+          <ul><li><a href="contact.html">Contact</a></li><li><a href="terms.html">Terms & Conditions</a></li></ul>
+        </div>
+      </div>
+
+      <div style="text-align:center;color:#cfcfcf">© <span id="year"></span> Sirius Minerals Holdings. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Script -->
+  <script>
+  (function(){
+    // --- Config & data ---
+    const PRICES = { gold:75, silver:25, copper:8, zinc:4, tantalum:20, emerald:150 };
+    const CATS = { gold:'Precious', silver:'Precious', copper:'Base', zinc:'Base', tantalum:'Rare', emerald:'Gemstone' };
+    const FX_API = 'https://api.exchangerate.host/latest?base=USD&symbols=ZMW'; // free
+    let FX = 25.50; // fallback
+    const defaultHoldings = { gold:50, silver:100, copper:200, zinc:0, tantalum:0, emerald:0 };
+
+    // DOM refs
+    const stampEl = document.getElementById('stamp');
+    const tbodyPrices = document.querySelector('#pricesTable tbody');
+    const buyMineral = document.getElementById('buyMineral');
+    const buyQty = document.getElementById('buyQty');
+    const buyPrice = document.getElementById('buyPrice');
+    const fxRateBuy = document.getElementById('fxRateBuy');
+    const buySubtotal = document.getElementById('buySubtotal');
+    const buyFee = document.getElementById('buyFee');
+    const buyTotal = document.getElementById('buyTotal');
+    const buyTotalZmw = document.getElementById('buyTotalZmw');
+    const btnCalcBuy = document.getElementById('btnCalcBuy');
+    const btnPlaceBuy = document.getElementById('btnPlaceBuy');
+
+    const sellMineral = document.getElementById('sellMineral');
+    const sellQty = document.getElementById('sellQty');
+    const sellAvail = document.getElementById('sellAvail');
+    const sellPrice = document.getElementById('sellPrice');
+    const sellGross = document.getElementById('sellGross');
+    const sellFee = document.getElementById('sellFee');
+    const sellNet = document.getElementById('sellNet');
+    const sellNetZmw = document.getElementById('sellNetZmw');
+    const btnCalcSell = document.getElementById('btnCalcSell');
+    const btnPlaceSell = document.getElementById('btnPlaceSell');
+
+    const portfolioList = document.getElementById('portfolioList');
+    const portfolioUsd = document.getElementById('portfolioUsd');
+    const portfolioZmw = document.getElementById('portfolioZmw');
+    const fxRateStamp = document.getElementById('fxRateStamp');
+
+    const toastEl = document.getElementById('toast');
+
+    // --- localStorage helpers ---
+    function getHoldings(){ try{ return JSON.parse(localStorage.getItem('sirius_holdings')) || Object.assign({}, defaultHoldings);}catch(e){ return Object.assign({}, defaultHoldings)} }
+    function setHoldings(h){ localStorage.setItem('sirius_holdings', JSON.stringify(h)); }
+
+    // --- Toast ---
+    let toastTimer = null;
+    function toast(msg, ms=2200){
+      clearTimeout(toastTimer);
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      toastTimer = setTimeout(()=> toastEl.classList.remove('show'), ms);
+    }
+
+    // --- Populate live price table ---
+    function populatePrices(){
+      tbodyPrices.innerHTML = '';
+      Object.keys(PRICES).forEach(k=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="text-transform:capitalize">${k}</td><td>${CATS[k]||''}</td><td>$${PRICES[k].toFixed(2)}</td>`;
+        tbodyPrices.appendChild(tr);
+      });
+      stampEl.textContent = new Date().toLocaleString();
+    }
+
+    // --- FX fetch ---
+    async function fetchFX(){
+      try {
+        const r = await fetch(FX_API, {cache:'no-store'});
+        if(!r.ok) throw new Error('FX fetch failed');
+        const data = await r.json();
+        if(data && data.rates && data.rates.ZMW){
+          FX = Number(data.rates.ZMW);
+          fxRateStamp.textContent = `FX Updated: ${new Date().toLocaleTimeString()} • 1 USD = ZMW ${FX.toFixed(2)}`;
+          // reflect in UI
+          fxRateBuy.value = FX.toFixed(2);
+          updatePortfolioUI();
+          return;
+        }
+      } catch(err){
+        console.warn('FX fetch error', err);
+        fxRateStamp.textContent = `Using fallback FX: ZMW ${FX.toFixed(2)}`;
+      }
+    }
+
+    // --- Portfolio UI ---
+    function updatePortfolioUI(){
+      const h = getHoldings();
+      let totalUsd = 0;
+      // compute usd per mineral
+      const listItems = [];
+      Object.keys(h).forEach(k=>{
+        const grams = Number(h[k]||0);
+        if(grams > 0){
+          const usd = grams * (PRICES[k]||0);
+          totalUsd += usd;
+          listItems.push({k,grams,usd});
+        }
+      });
+
+      portfolioList.innerHTML = '';
+      if(listItems.length === 0){
+        portfolioList.innerHTML = `<li class="muted">No holdings yet</li>`;
+      } else {
+        // sort by value desc
+        listItems.sort((a,b)=>b.usd-a.usd);
+        listItems.forEach(item=>{
+          const pct = totalUsd > 0 ? (item.usd / totalUsd * 100) : 0;
+          const li = document.createElement('li');
+          li.style.marginBottom = '10px';
+          li.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong style="text-transform:uppercase">${item.k}</strong><span>${item.grams} g • $${item.usd.toFixed(2)}</span></div>
+                          <div class="bar"><div class="bar-fill" style="width:${pct.toFixed(1)}%"></div></div>`;
+          portfolioList.appendChild(li);
+        });
+      }
+
+      portfolioUsd.textContent = `$${totalUsd.toFixed(2)}`;
+      portfolioZmw.textContent = `ZMW ${(totalUsd * FX).toFixed(2)}`;
+    }
+
+    // --- Sell dropdown ---
+    function loadSellDropdown(){
+      const h = getHoldings();
+      sellMineral.innerHTML = '';
+      Object.keys(h).forEach(k=>{
+        if((h[k]||0) > 0){
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = `${k} — ${h[k]} g`;
+          sellMineral.appendChild(opt);
+        }
+      });
+      if(!sellMineral.value && sellMineral.options.length>0) sellMineral.selectedIndex = 0;
+      updateSellInfo();
+    }
+
+    function updateSellInfo(){
+      const h = getHoldings();
+      const k = sellMineral.value;
+      const available = k ? (h[k]||0) : 0;
+      sellAvail.value = available;
+      sellPrice.value = k ? PRICES[k].toFixed(2) : '—';
+    }
+
+    // --- Buy calculation & place ---
+    function calcBuy(){
+      const qty = Number(buyQty.value || 0);
+      const k = buyMineral.value;
+      if(!k || qty <= 0){ toast('Enter valid quantity'); return null; }
+      const p = PRICES[k] || 0;
+      const subtotal = qty * p;
+      const fee = subtotal * 0.05;
+      const total = subtotal + fee;
+      buySubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      buyFee.textContent = `$${fee.toFixed(2)}`;
+      buyTotal.textContent = `$${total.toFixed(2)}`;
+      buyTotalZmw.textContent = `ZMW ${(total * FX).toFixed(2)}`;
+      return {k,qty,totalUSD:total};
+    }
+
+    function placeBuy(){
+      const res = calcBuy(); if(!res) return;
+      const h = getHoldings();
+      h[res.k] = (Number(h[res.k]||0) + Number(res.qty));
+      setHoldings(h);
+      updatePortfolioUI();
+      loadSellDropdown();
+      buyQty.value = '';
+      toast('Buy order placed — portfolio updated');
+    }
+
+    // --- Sell calc & place ---
+    function calcSell(){
+      const qty = Number(sellQty.value || 0);
+      const k = sellMineral.value;
+      const h = getHoldings();
+      const available = (h[k]||0);
+      if(!k || qty <= 0 || qty > available){ toast('Enter valid quantity ≤ available'); return null; }
+      const p = PRICES[k] || 0;
+      const gross = qty * p;
+      const fee = gross * 0.05;
+      const net = gross - fee;
+      sellGross.textContent = `$${gross.toFixed(2)}`;
+      sellFee.textContent = `$${fee.toFixed(2)}`;
+      sellNet.textContent = `$${net.toFixed(2)}`;
+      sellNetZmw.textContent = `ZMW ${(net * FX).toFixed(2)}`;
+      return {k,qty,netUSD:net};
+    }
+
+    function placeSell(){
+      const res = calcSell(); if(!res) return;
+      const h = getHoldings();
+      h[res.k] = Math.max(0, (h[res.k]||0) - Number(res.qty));
+      setHoldings(h);
+      updatePortfolioUI();
+      loadSellDropdown();
+      sellQty.value = '';
+      toast('Sell order executed and settled in ZMW');
+    }
+
+    // --- CSV Export & Clear ---
+    function exportCsv(){
+      const h = getHoldings();
+      const rows = [['Mineral','Grams','USD Value']];
+      Object.keys(h).forEach(k=>{
+        const g = Number(h[k]||0);
+        if(g>0){
+          rows.push([k, g, (g * (PRICES[k]||0)).toFixed(2)]);
+        }
+      });
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sirius_portfolio.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Portfolio exported (CSV)');
+    }
+
+    function clearLocal(){
+      if(!confirm('Clear local holdings? This cannot be undone.')) return;
+      localStorage.removeItem('sirius_holdings');
+      updatePortfolioUI();
+      loadSellDropdown();
+      toast('Local holdings cleared');
+    }
+
+    // --- UI wiring ---
+    function initUI(){
+      // populate prices and buy/sell price fields
+      populatePrices();
+      buyPrice.value = PRICES[buyMineral.value].toFixed(2);
+      fxRateBuy.value = FX.toFixed(2);
+
+      // buy/sell listeners
+      btnCalcBuy.addEventListener('click', calcBuy);
+      btnPlaceBuy.addEventListener('click', placeBuy);
+
+      btnCalcSell.addEventListener('click', calcSell);
+      btnPlaceSell.addEventListener('click', placeSell);
+
+      sellMineral.addEventListener('change', updateSellInfo);
+      buyMineral.addEventListener('change', ()=>{ buyPrice.value = PRICES[buyMineral.value].toFixed(2); });
+
+      document.getElementById('btnExportCsv').addEventListener('click', exportCsv);
+      document.getElementById('btnClearHold').addEventListener('click', clearLocal);
+
+      // tabs
+      document.querySelectorAll('.tab-btn').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+          b.classList.add('active');
+          document.getElementById('buyTab').style.display = b.dataset.tab === 'buyTab' ? 'block' : 'none';
+          document.getElementById('sellTab').style.display = b.dataset.tab === 'sellTab' ? 'block' : 'none';
+        });
+      });
+
+      // mobile menu toggle
+      document.querySelector('.mobile-toggle').addEventListener('click', ()=>{
+        const nav = document.querySelector('header nav');
+        nav.classList.toggle('open');
+      });
+
+      // initial fill
+      updatePortfolioUI();
+      loadSellDropdown();
+      populatePrices();
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // fetch fx
+      fetchFX();
+      setInterval(fetchFX, 5 * 60 * 1000); // every 5 minutes
+    }
+
+    // start
+    initUI();
+
+  })();
+  </script>
+</body>
+</html>
