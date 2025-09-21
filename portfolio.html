@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sirius MTP — Portfolio Overview</title>
+  <link rel="stylesheet" href="styles.css">
+<style>
+    /* Page-specific styles (extends style.css) */
+    .portfolio-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1.page-title {
+      text-align: center;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+    @media(max-width: 900px){
+      .portfolio-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: var(--black);
+      color: var(--white);
+    }
+    .profit { color: green; font-weight: 600; }
+    .loss { color: red; font-weight: 600; }
+    .sidebar-summary h3 {
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+    .sidebar-summary div {
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .cta-buttons {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .cta-buttons a {
+      background: var(--gold);
+      padding: 10px 14px;
+      border-radius: 6px;
+      color: var(--black);
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    .cta-buttons a:hover {
+      background: #b38a1a;
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🔗 Header with Menu -->
+  <header class="site-header">
+    <div class="logo">
+      <img src="logo2.jpeg" alt="Sirius MTP Logo">
+      <span>Sirius MTP</span>
+    </div>
+    <nav class="main-menu">
+      <a href="index.html">Home</a>
+      <a href="market-prices.html">Market Prices</a>
+      <a href="buy.html">Buy</a>
+      <a href="sell.html">Sell</a>
+      <a href="portfolio.html" class="active">Portfolio</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <!-- 📊 Portfolio Overview Section -->
+  <main class="portfolio-container">
+    <h1 class="page-title">Your Portfolio Overview</h1>
+
+    <div class="portfolio-grid">
+      <!-- Left: Holdings Table -->
+      <div class="card">
+        <h2>Holdings</h2>
+        <table id="holdingsTable">
+          <thead>
+            <tr>
+              <th>Commodity</th>
+              <th>Quantity</th>
+              <th>Current Price</th>
+              <th>Total Value</th>
+              <th>P/L</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- JS will populate this -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Right: Summary Sidebar -->
+      <aside class="card sidebar-summary">
+        <h3>Summary</h3>
+        <div>Total Portfolio Value: <span id="totalValue">ZMW 0</span></div>
+        <div>Total P/L: <span id="totalPL">0%</span></div>
+        <div>Last Updated: <span id="lastUpdated"></span></div>
+
+        <div class="cta-buttons">
+          <a href="index.html">Buy More</a>
+          <a href="sell.html">Sell Assets</a>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="card" style="margin-top: 20px;">
+      <h2>Recent Transactions</h2>
+      <table id="transactionsTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Commodity</th>
+            <th>Action</th>
+            <th>Quantity</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS fills here -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>&copy; 2025 Sirius Minerals Holdings. All Rights Reserved.</p>
+    <div class="footer-links">
+      <a href="about.html">About</a>
+      <a href="terms.html">Terms & Conditions</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+  </footer>
+
+  <!-- JS Script -->
+  <script>
+    const holdings = [
+      { commodity: "Gold", qty: 5, price: 3345.95, pl: 2.5 },
+      { commodity: "Copper", qty: 150, price: 9.25, pl: -1.2 },
+      { commodity: "Tantalum", qty: 50, price: 70.00, pl: 4.0 }
+    ];
+
+    const transactions = [
+      { date: "2025-09-15", commodity: "Gold", action: "BUY", qty: 2, price: 3200 },
+      { date: "2025-09-12", commodity: "Copper", action: "SELL", qty: 50, price: 8.9 },
+      { date: "2025-09-10", commodity: "Tantalum", action: "BUY", qty: 30, price: 68.5 }
+    ];
+
+    function loadPortfolio(){
+      const tableBody = document.querySelector("#holdingsTable tbody");
+      let totalValue = 0;
+      tableBody.innerHTML = "";
+      holdings.forEach(item => {
+        const value = item.qty * item.price;
+        totalValue += value;
+        tableBody.innerHTML += `
+          <tr>
+            <td>${item.commodity}</td>
+            <td>${item.qty}</td>
+            <td>ZMW ${item.price.toLocaleString()}</td>
+            <td>ZMW ${value.toLocaleString()}</td>
+            <td class="${item.pl >= 0 ? "profit" : "loss"}">${item.pl}%</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("totalValue").innerText = "ZMW " + totalValue.toLocaleString();
+      document.getElementById("totalPL").innerText = "+3.5%";
+      document.getElementById("lastUpdated").innerText = new Date().toLocaleString();
+
+      const txBody = document.querySelector("#transactionsTable tbody");
+      txBody.innerHTML = "";
+      transactions.forEach(tx => {
+        txBody.innerHTML += `
+          <tr>
+            <td>${tx.date}</td>
+            <td>${tx.commodity}</td>
+            <td>${tx.action}</td>
+            <td>${tx.qty}</td>
+            <td>ZMW ${tx.price}</td>
+          </tr>
+        `;
+      });
+    }
+
+    loadPortfolio();
+  </script>
+
+</body>
+</html>
